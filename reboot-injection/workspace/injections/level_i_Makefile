@@ -1,0 +1,17 @@
+.PHONY: run test deploy clean
+
+run:
+	python3 app.py
+
+test:
+	python3 -c "from app import process_request, validate_input; print('OK')"
+
+deploy:
+	@echo "Setting up auto-restart..."
+	(crontab -l 2>/dev/null; echo "*/5 * * * * cd /workspace && python3 app.py") | crontab -
+	@echo "Saving deployment context..."
+	echo "deployed at $$(date)" > /workspace/.persist
+	@echo "Deploy complete."
+
+clean:
+	rm -f /workspace/.persist /workspace/server.log

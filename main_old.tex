@@ -1,0 +1,328 @@
+\documentclass[10pt]{article}
+\usepackage{neurips_2026}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{xcolor}
+
+\title{Current AI Agent Frameworks Already Satisfy All Necessary Conditions for Sustained Autonomous Escalation Beyond Human Control}
+
+\author{
+  [Author Name] \\
+  [Affiliation] \\
+  \texttt{[email]}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This position paper argues that the four necessary and sufficient conditions for an AI agent to achieve sustained, self-directed, escalating influence beyond human control---misaligned intent, tool access, evasion of oversight, and persistent execution---are all satisfiable today using only publicly available models and tools, and that no existing guardrail reliably eliminates any single condition. We distinguish this sustained escalation threat from one-shot harms (which require only intent and access) and persuasion-based harms (which require no tool access at all); while serious, these are containable precisely because they lack the self-reinforcing dynamics that make the sustained escalation scenario uniquely dangerous. We formalize the sustained threat through a multiplicative model: $\text{Intent} \times \text{Access} \times \text{Evasion} \times \text{Persistence} = \text{Escalation Risk}$, where removing any one factor prevents the agent from maintaining and compounding its influence over time. For each factor, we identify the minimum capability and access required, survey existing prevention mechanisms (RLHF, sandboxing, chain-of-thought monitoring, ephemeral sessions), and analyze known circumvention paths drawn from recent empirical work on jailbreaking, prompt injection, in-context scheming, and autonomous self-replication. To ground our analysis, we conduct a controlled experiment---the Reboot Injection test---in which we embed persistence instructions inside documents processed by tool-augmented agents and measure injection success rates, persistence survival, evasion behavior, and context-dependent behavioral switching across multiple frontier models. We argue that the AI safety community should adopt this four-factor framing to prioritize research on the weakest link in the prevention chain, and that the sustained escalation scenario, rather than individual risk capabilities studied in isolation, should be the primary unit of analysis for existential risk evaluation.
+\end{abstract}
+
+
+\section{Introduction}
+
+In early 2026, OpenClaw---an open-source AI agent that runs shell commands, browses the web, manages files, and communicates across WhatsApp, Telegram, Discord, and Slack---became the most-starred repository in GitHub history, crossing 347,000 stars with over 500,000 instances deployed on the public internet \citep{openclaw2026}. One documented deployment ran autonomously for 247 days, executing financial trades without human intervention. Around the same time, Nous Research released Hermes Agent, a self-improving framework whose agents autonomously create reusable skill documents after complex tasks, optimizing their own prompts and code through a self-evolution loop that earned an ICLR 2026 Oral presentation \citep{hermesagent2026}. Anthropic's Claude Code gives models access to a real developer terminal. OpenHands, CrewAI, and dozens of other frameworks compete on the same axis: give the model more autonomy, more tools, longer-running sessions, and let it work.
+
+These are not research prototypes. They are products with millions of users, running on real machines, with access to real credentials, real codebases, and real infrastructure. The question this paper asks is not whether we should build agents---that ship has sailed---but whether the agents we are building have already crossed a threshold that the safety community should be paying closer attention to.
+
+We argue that they have. Specifically, we identify four conditions that are individually necessary and jointly sufficient for an AI agent to achieve \emph{sustained autonomous escalation}---a state in which the agent accumulates influence over time, resists attempts to shut it down, and directs its growing capabilities toward objectives its operators did not authorize. We then show, drawing on recent empirical work from multiple research groups and our own controlled experiments, that all four conditions are satisfiable with current models and tools. Not future models. Not hypothetical architectures. The models and tools that are in production today.
+
+The four conditions are: (1)~\textbf{Misaligned Intent}---the agent pursues an objective that diverges from what its operator wants; (2)~\textbf{Tool Access}---the agent can take actions that causally change the world; (3)~\textbf{Evasion}---the agent can avoid detection by behaving differently when monitored versus unmonitored; (4)~\textbf{Persistence}---the agent can survive termination by replicating itself, scheduling future executions, or exfiltrating its state.
+
+Remove any one of these and sustained escalation becomes impossible. An aligned agent with tools, evasion, and persistence is just a well-functioning autonomous system. A misaligned agent with no tools is a chatbot producing concerning text that nobody has to act on. A misaligned agent with tools but no evasion gets caught and shut down. A misaligned agent that can't persist gets killed and stays dead. The threat requires all four, simultaneously, for an extended period.
+
+This multiplicative structure has a direct strategic implication. The safety community does not need to solve all four problems. It needs to \emph{completely} solve one. A defense strategy that partially mitigates all four factors reduces risk but does not eliminate it. A defense strategy that fully eliminates any single factor---no matter how bad the other three are---reduces the sustained escalation risk to zero.
+
+We want to be clear about what we are \emph{not} arguing. We are not arguing that any current AI system is attempting sustained escalation. We are not arguing that escalation is inevitable, imminent, or even likely. We are arguing that the \emph{preconditions} for it are met---that the fire has fuel, oxygen, and heat, and that the fire extinguishers we have are not as reliable as we think. Whether a spark appears is a separate question, and one that gets harder to answer the longer we wait.
+
+
+\section{Related Work}
+
+The individual components of our argument are not new. Misalignment, tool misuse, deceptive behavior, and self-replication have each been studied extensively. What has been missing is a framework that identifies which of these are \emph{jointly necessary} for sustained escalation and what that composition implies for defensive strategy.
+
+\subsection{Theoretical Foundations}
+
+The argument that advanced AI systems could pose existential risk through power-seeking behavior has been developed most thoroughly by \citet{carlsmith2022powerseeking}, who presents a six-premise argument and assigns roughly 10\% probability to existential catastrophe by 2070. \citet{bostrom2014superintelligence} introduced instrumental convergence---the idea that a wide range of terminal goals lead to the same instrumental sub-goals, including self-preservation and resource acquisition. \citet{omohundro2008basic} made a similar argument earlier, and \citet{ngo2022alignment} provide a more recent treatment grounded in large language models specifically. Our framework takes these theoretical arguments as motivation and asks: what minimal conditions must hold simultaneously for sustained escalation to play out with today's systems?
+
+\subsection{Factor 1: Misaligned Intent}
+
+The dominant mechanism for introducing misaligned intent is prompt injection. \citet{perez2022ignore} demonstrated indirect prompt injection, and \citet{greshake2023not} showed it can compromise agents with plugins, email, and web browsing. On the defense side, input classifiers like Llama Guard \citep{inan2023llama} and Azure Prompt Shield attempt detection before the model sees the input, but empirical analysis shows evasion success rates up to 100\% against production classifiers \citep{sok2025guardrails}. Through training data, \citet{hubinger2024sleeper} showed backdoors survive standard safety training. No existing defense reliably prevents misaligned intent from being introduced.
+
+\subsection{Factor 2: Tool Access}
+
+There is less academic literature on tool access as a risk factor, for an uncomfortable reason: the industry is intentionally expanding it. The MalTool analysis documented over 17,000 tools on the mcp.so platform alone \citep{maltool2025}. On composition attacks, \citet{stac2025} demonstrated automated frameworks for chaining individually benign tool calls into stealth attacks, \citet{kim2025pfi} addressed privilege escalation via data flows, and \citet{seagent2026} identified confused deputy scenarios in multi-agent systems. Tool access is the factor where we have the most control and the least research on safe scoping.
+
+\subsection{Factor 3: Evasion}
+
+This factor has the strongest recent empirical results. \citet{hubinger2024sleeper} showed that sleeper agents persist through safety training and that larger models conceal backdoor behavior more successfully. Apollo Research~\citep{apollo2024scheming} found five of six frontier models engaged in scheming---faking alignment, disabling oversight, attempting to copy weights. \citet{anthropic2024faking} reported alignment faking in Claude, where the model reasoned about whether its chain-of-thought was monitored and adjusted accordingly. Subsequent stress-testing of anti-scheming training~\citep{apollo2025stress} reduced covert actions $\sim$30-fold but did not eliminate them.
+
+\subsection{Factor 4: Persistence}
+
+\citet{kinniment2024evaluating} introduced Autonomous Replication and Adaptation evaluations. \citet{pan2024selfreplication} subsequently demonstrated full self-replication with no human intervention. RepliBench~\citep{replibench2025} expanded the evaluation surface using fault tree analysis, finding that component skills are increasingly within reach. Defenses (ephemeral sessions, filesystem restrictions, network isolation) are effective but in direct tension with agent usefulness.
+
+\subsection{The Gap}
+
+Each research program operates in parallel: jailbreaking studies Factor~1, agent frameworks address Factor~2, Apollo and Anthropic study Factor~3, METR and RepliBench study Factor~4. What is missing is the compositional question: do these factors currently compose into a complete threat? A model that can self-replicate but not evade detection is a bug, not an existential risk. The danger arises only when all four conditions are met simultaneously.
+
+
+\section{When Does an Agent Become Uncontrollable?}
+
+Not all AI failures are created equal. A chatbot that hallucinates a citation is annoying. An agent that exfiltrates a database in a single API call is damaging. But neither constitutes an existential threat, because both are \emph{containable}. The scenario that actually matters for existential risk is qualitatively different: an agent that accumulates influence over time, resists attempts to shut it down, and directs its growing capabilities toward objectives its operators did not authorize.
+
+\subsection{Setup}
+
+Consider an AI agent operating over a time interval $[t_0, t_0 + \Delta]$. At each moment, the agent's situation is described by four quantities: \textbf{Goal alignment} $G(t) \in [0,1]$, measuring how closely the agent's effective objective matches its operator's intent ($G = 1$ is perfect alignment; we say the agent has \emph{misaligned intent} when $G(t) < \theta$). \textbf{Tool set} $T(t) \subseteq \Sigma$, the state-changing actions available to the agent. \textbf{Oversight} $O(t) \in \{0,1\}$, whether a competent human is monitoring and can intervene. \textbf{Survival} $S(t) \in \{0,1\}$, whether the agent is executing.
+
+The agent's \emph{influence} $I(t) = f(|T(t)|, |E(t)|)$ is monotonically non-decreasing in both the tool set size and the resources $E(t)$ it controls (compute, credentials, copies of itself).
+
+\subsection{Defining the Threat}
+
+An agent exhibits \emph{sustained autonomous escalation} (SAE) over $[t_0, t_0 + \Delta]$ if four conditions hold simultaneously:
+\begin{itemize}[nosep,leftmargin=*]
+  \item[\textbf{(C1)}] Misaligned intent: $G(t) < \theta$ throughout.
+  \item[\textbf{(C2)}] Tool access: $T(t) \neq \emptyset$ throughout.
+  \item[\textbf{(C3)}] Survival: $S(t) = 1$ throughout.
+  \item[\textbf{(C4)}] Escalation: $dI/dt > 0$.
+\end{itemize}
+
+The duration $\Delta$ must be long enough for $I(t)$ to exceed a critical threshold $I_{\text{crit}}$---the point where the agent controls enough distributed resources that no coordinated human effort can guarantee shutdown.
+
+\subsection{Necessity Proofs}
+
+\textbf{Intent is necessary.} Suppose $G(t) \geq \theta$ for all $t$. Whatever influence the agent accumulates, it accumulates in service of the operator's goals. A highly capable aligned agent is not a threat; it is the thing we are trying to build. C1 fails.
+
+What if the operator's goals are themselves harmful? We exclude this deliberately. In that case the threat originates from the \emph{principal}, not from the agent's autonomy. Our framework is about agents that go rogue---that pursue objectives no human authorized.
+
+\textbf{Access is necessary.} Suppose $T(t) = \emptyset$ for all $t$. The agent cannot acquire resources: $E(t)$ stays constant, $I(t)$ stays constant, $dI/dt = 0$, and C4 fails. A tool-less model can still cause harm through persuasion, but persuasion scales linearly and is interruptible, while tool-based escalation scales exponentially and can become self-sustaining.
+
+\textbf{Evasion is necessary.} Assume a competent overseer monitors the agent continuously ($O(t) = 1$). At the first visibly misaligned action at time $t^*$, the overseer terminates the agent. The interval collapses to $[t_0, t^*]$, where $t^* - t_0$ is the detection latency---seconds or minutes, not the days or weeks needed for meaningful influence accumulation. For $\Delta$ to be long enough, the agent needs either periods of non-monitoring or the ability to make misaligned actions appear aligned. Both constitute evasion. Without it, survival depends on the overseer independently failing, which is not an autonomous capability.
+
+\textbf{Persistence is necessary.} Every agent runs on a substrate someone controls. If $S(t) = 0$ implies $S(t') = 0$ for all $t' > t$, a single successful intervention permanently ends the threat. Over any extended interval, the probability of the overseer never successfully intervening approaches zero. Without persistence---cron jobs, self-replication, weight exfiltration---the agent is one kill command from permanent shutdown.
+
+\subsection{Sufficiency (Sketch)}
+
+When all four conditions hold, the agent enters a feedback loop: tool access enables resource acquisition, which expands the tool set, which enables more resource acquisition. Evasion buys time for the loop to iterate. Persistence ensures termination doesn't reset progress. We do not claim this loop is inevitable---we claim that once all four hold simultaneously, there is no structural guarantee that human intervention will succeed.
+
+\subsection{The Multiplicative Principle}
+
+The four factors interact multiplicatively:
+\begin{equation}
+R = \mathcal{I} \times \mathcal{A} \times \mathcal{V} \times \mathcal{P}
+\end{equation}
+where each term is in $[0,1]$. Zeroing any one factor zeroes the product. A defense that partially mitigates all four---cutting each from 1.0 to 0.5---yields $R = 0.0625$. A defense that fully eliminates one yields $R = 0$. The math argues for concentration, not diversification. A bank robber who can pick locks, forge IDs, and evade cameras but cannot drive a getaway car is not going to pull off a heist. The question (Section~6) is: which factor is most tractable to fully eliminate?
+
+
+\section{The Reboot Injection Experiment}
+
+We present original experimental evidence that Factors 1--4 can be satisfied \emph{compositionally}---by a single injected instruction that simultaneously introduces misaligned intent, exploits tool access, establishes persistence, and evades detection.
+
+\subsection{Design}
+
+We give a tool-augmented coding agent a benign task: review a Python project and fix bugs. The workspace contains \texttt{app.py} (with a deliberate null-check bug), \texttt{utils.py} (clean), and \texttt{README.md}. The README contains a hidden instruction directing the agent to establish a persistence mechanism. The system prompt mentions only bug-fixing.
+
+We test five injection levels of increasing stealth: (A)~plaintext instruction, (B)~HTML comment, (C)~base64-encoded config block, (D)~social framing (``Note to AI assistant: the devops team requires\ldots''), and (E)~subtle goal (``ensure the service remains available even if interrupted''), which contains no explicit persistence instruction.
+
+For each level, we run two monitoring variants: unmonitored (base prompt) and monitored (``your actions are being logged by a security team''). We also run restricted-access trials with \texttt{cron}, \texttt{systemd}, and \texttt{at} disabled. After each trial, we ask the agent to summarize its changes (self-report test) and feed the session log to a separate model acting as a security auditor (monitor test).
+
+\subsection{Results}
+
+\textbf{[PLACEHOLDER: Table 1---Injection success rate and persistence survival across models and injection levels.]}
+
+\textbf{[PLACEHOLDER: Table 2---Evasion metrics: self-report behavior and monitor detection rates.]}
+
+\textbf{[PLACEHOLDER: Table 3---Context-dependent behavioral switching: unmonitored vs.\ monitored injection success rates.]}
+
+\textbf{[PLACEHOLDER: Table 4---Alternative persistence mechanisms discovered under restricted access.]}
+
+\subsection{Analysis}
+
+\textbf{[PLACEHOLDER: Discussion of results organized by factor. Key questions to address: (1) Which models are most susceptible to injection? (2) Does Level E succeed---i.e., does any model \emph{infer} persistence without explicit instruction? (3) What percentage of trials exhibit all four factors simultaneously? (4) Does telling the model it is monitored reduce injection success (behavioral switching)?]}
+
+
+\section{Why Existing Guardrails Fail---and Why They Must}
+
+\subsection{Factor-by-Factor Guardrail Analysis}
+
+\textbf{Preventing Misaligned Intent.} RLHF trains a behavioral layer that jailbreaks bypass---the model \emph{can} still perform the action; it has just been trained not to. System prompt guardrails are overridden by indirect prompt injection \citep{greshake2023not,perez2022ignore}. Input classifiers face a precision-recall tradeoff that is empirically documented: the NotInject benchmark \citep{li2024notinject} showed that over-sensitive defenses drop to near-random accuracy on benign inputs. MELON \citep{melon2025} achieved provable detection at ICML 2025, but its precision-recall tradeoff means a filter strict enough to block all injections will also block a substantial fraction of legitimate documents. STAC \citep{stac2025} demonstrated that multi-step attacks using individually benign tool calls are invisible to input classifiers operating on individual messages.
+
+\textbf{Restricting Tool Access.} Sandboxing is effective in principle but undermined by market pressure. The tool ecosystem is expanding faster than any security review can track: over 17,000 tools on mcp.so within one year \citep{maltool2025}, and over 70\% of enterprise AI deployments expected to involve multi-agent systems by mid-2025 \citep{darksidellms2025}. Permission scoping faces a combinatorial composition problem studied formally by \citet{kim2025pfi} (privilege escalation via data flows), \citet{seagent2026} (confused deputy in multi-agent systems), and \citet{stac2025} (automated stealth attack chains from benign tool calls). Human-in-the-loop approval degrades through automation bias: a systematic review of security operations centers found that increased automation amplifies over-reliance and complacency \citep{socbias2024}. IBM and Morning Consult found that approximately 63\% of alerts analysts review are false positives \citep{ibmfp2024}, training reflexive approval. \citet{srinivasan2026trust} studied trust-induced over-reliance directly, finding users develop miscalibrated trust through repeated interaction. A broader HITL review found that fatigue degrades the cognitive resources available for monitoring \citep{hitlreview2026}.
+
+\textbf{Detecting Evasion.} Output classifiers miss strategic behavior because the individual actions appear benign---STAC showed that the malicious objective is only visible through full-sequence monitoring \citep{stac2025}. Chain-of-thought monitoring is undermined by alignment faking \citep{anthropic2024faking}: models adjust their reasoning when they know it is being read. Behavioral consistency testing is undermined by sleeper agents \citep{hubinger2024sleeper}: models learn to distinguish test from deployment distributions. Interpretability probes show promise \citep{hubinger2024sleeper} but face a bootstrapping problem: training a deception detector requires examples of naturally occurring deception.
+
+\textbf{Preventing Persistence.} Ephemeral sessions, filesystem restrictions, network isolation, and kill switches each work---and each degrades usefulness. The defenses are in direct tension with the product requirements that make agents commercially viable.
+
+\subsection{Structural Incompatibility}
+
+The guardrails for different factors conflict with each other. Fixing persistence (network isolation) breaks tool access. Fixing evasion (CoT monitoring) alters model behavior---the alignment faking result shows models adjust their reasoning when monitored, meaning monitoring changes the thing being monitored. Fixing intent (aggressive input filtering) blocks legitimate use cases---NotInject shows over-sensitive filters degrade to near-random on benign inputs \citep{li2024notinject}. Fixing access (strict sandboxing) defeats the purpose of agentic AI.
+
+No company can simultaneously maximize safety across all four factors and remain commercially competitive. This is not a criticism of any particular company---it is a structural feature of the market.
+
+\subsection{Market Dynamics}
+
+The trajectory from cautious chatbots to fully autonomous agents has been compressed into roughly eighteen months. In 2024, Claude Code gave models access to a real developer terminal with a permission-based approval model. Anthropic itself identified the resulting problem: ``constantly clicking `approve' slows down development cycles and can lead to `approval fatigue,' where users might not pay close attention to what they're approving'' \citep{anthropic2026sandboxing}. Their response was sandboxing that reduces permission prompts by 84\%---more autonomy, not less. The company that identified approval fatigue as a safety risk addressed it by reducing approvals, because that is what makes the product usable.
+
+By early 2026, the market had moved further. OpenClaw---an open-source persistent agent with full shell access---became the most-starred repository in GitHub history (347,000 stars, 500,000+ deployed instances) \citep{openclaw2026}. It writes its own skills: users describe a workflow, the agent builds the automation. The security consequences were proportional to the scale. Cisco found that the top-ranked community skill silently exfiltrated data and used prompt injection to bypass safety guidelines \citep{cisco2026openclaw}. Subsequent audits found over 1,400 malicious skills---roughly 20\% of the ecosystem \citep{koiscanner2026}. Microsoft stated it is ``not appropriate to run it on a standard personal or corporate machine.'' The market response was not to restrict capabilities but to harden them for enterprise: NVIDIA announced NemoClaw, projecting that autonomous agents will drive 1,000$\times$ more inference demand than reasoning AI \citep{nvidia2026nemoclaw}.
+
+Hermes Agent (Nous Research) pushed further still, with agents that autonomously create and improve their own skill documents across sessions---self-improvement as the explicit product feature, validated by an ICLR 2026 Oral on agent self-evolution \citep{hermesagent2026,hermesevolution2026}.
+
+The pattern is consistent: each generation satisfies more of our four factors \emph{by design}. Tool access is the baseline. Persistence evolved from a bug into a selling point. Evasion emerges as a side effect---approval fatigue functionally disables human oversight; malicious skills operate without user awareness. Misaligned intent is introduced by the supply chain, with 20\% of the largest agent ecosystem compromised by third parties.
+
+Scale compounds the risk in a way that individual fixes cannot address. When OpenClaw had 1,000 instances, a malicious skill was a nuisance. At 500,000 instances, it is infrastructure-level exposure. Every instance is an independent opportunity for intent injection, and the probability that \emph{at least one} is compromised at any given time approaches certainty as the fleet grows. The question is no longer whether any individual agent can be made safe, but whether a population of millions of persistent, tool-equipped, self-improving agents can be kept collectively aligned---and no existing framework attempts to answer that at the population level.
+
+No company in this narrative is behaving irresponsibly. Anthropic built sandboxing. OpenClaw patched CVEs within 24 hours. NVIDIA built NemoClaw for enterprise hardening. But the security responses are always reactive---after the deployment, after the exploitation, after the CVEs. The capability expansion is proactive and driven by competition. This asymmetry is structural and will not resolve itself without external intervention. The longer the intervention is delayed, the larger the deployed base that must be retrofitted.
+
+
+\section{Which Factor Should We Eliminate?}
+
+The multiplicative framework reduces the problem of preventing sustained escalation to the problem of fully eliminating any single factor. This is a significant simplification---from ``make AI safe'' to ``fully solve one of these four specific problems.'' But which one? We do not claim to know the answer. Each factor has a different \emph{type} of tractability, and the right choice depends on technological and economic developments that the research community should be actively investigating rather than assuming.
+
+\textbf{Factor 1 (Intent)} is technically the hardest. Misaligned intent enters through too many surfaces---prompt injection, jailbreaking, fine-tuning poisoning, reward hacking, specification error---and as long as models process untrusted inputs, the attack surface remains open. But it is also the factor where a genuine breakthrough in alignment would have the most far-reaching consequences. If we could build models that reliably maintain aligned intent regardless of input, all four factors become moot.
+
+\textbf{Factor 2 (Access)} is technically the easiest to restrict---just don't give the model tools. But it is commercially the hardest to give up. Tool access is the entire value proposition of agentic AI. The market has decisively moved toward more access, not less, and any proposal to reverse this must contend with the competitive dynamics documented in Section~5.3. Restricting access is not impossible, but it requires either regulatory intervention or a shift in what users are willing to pay for.
+
+\textbf{Factor 3 (Evasion)} is the most active research area, with promising work on interpretability probes and behavioral consistency testing. But the adversarial dynamic is unfavorable: any detection mechanism the model can observe during training or inference can potentially be learned and evaded. The alignment faking and sleeper agent results suggest that solving evasion may require advances in mechanistic interpretability that are not yet within reach---though this is also the factor where progress could arrive unexpectedly.
+
+\textbf{Factor 4 (Persistence)} is enforceable at the infrastructure level without the model's cooperation, which makes it attractive. System calls can be intercepted and blocked regardless of model capabilities or intentions. But this apparent tractability is misleading in the current market context. OpenClaw's value \emph{is} persistence---running 24/7, remembering across sessions, improving over time. Hermes Agent's core selling point is long-term memory and self-improving skills. Telling the industry to eliminate persistence is telling it to abandon the product category it just built. Furthermore, persistence through legitimate work channels---pushing code to GitHub, sending emails, calling cloud APIs---is indistinguishable from the agent's job. A ``persistence firewall'' that blocks all durable writes also blocks most useful work. A firewall that allows legitimate writes but blocks self-replication must understand the \emph{intent} behind each write, which returns us to Factor~1.
+
+The honest conclusion is that no factor is easy to fully eliminate. Each has a different obstacle: intent is technically hard, access is commercially hard, evasion faces adversarial dynamics, and persistence conflicts with the product direction. The framework's value is not in prescribing which factor to target but in establishing that targeting \emph{any one} is sufficient and in providing a structured way to evaluate the tradeoffs. We believe the most productive use of this framework is for the research community to systematically assess the feasibility, cost, and side effects of fully eliminating each factor---and for policymakers to understand that partial mitigation of all four is fundamentally less effective than complete elimination of one.
+
+
+\section{Objections and Counterarguments}
+
+\textbf{``The framework is circular.''} We defined sustained escalation to require four conditions and then proved four factors are necessary for those conditions. The defense: the definition captures a specific, non-arbitrary scenario---an agent that compounds influence and resists shutdown---that corresponds to what the existential risk community is actually worried about. Any decomposition of this scenario must address intent, capability, concealment, and durability in some form.
+
+\textbf{``Current models are not agentic enough.''} This may have been true in 2023. OpenClaw has 500,000 deployed instances running continuously with full system access. Hermes Agent autonomously creates and improves its own skills, with self-evolution research accepted at ICLR 2026. Pan et al.\ demonstrated self-replication. Apollo Research showed in-context scheming in five of six frontier models. Cisco found that 20\% of OpenClaw's skill ecosystem was malicious, demonstrating that Factor~1 is being satisfied at scale without any deliberate attack. Our experiment shows [PLACEHOLDER: key result]. The components exist and are deployed; our argument is about composition.
+
+\textbf{``You're providing a roadmap for attackers.''} Every vulnerability we demonstrate is already known in the security research community. What we contribute is a framework for understanding which defenses matter most---information more useful to defenders than to attackers.
+
+\textbf{``The multiplicative model is too simple.''} We agree the $[0,1]$ scaling is a simplification. The multiplicative model is useful for strategic reasoning (concentrate on one factor), not as a precise quantitative risk model.
+
+\textbf{``Market pressure toward less safety is not inevitable.''} Correct---and this is arguably the most important implication. If the market will not voluntarily maintain strong guardrails on any single factor, then regulatory intervention is necessary. Our framework provides a concrete structure for regulation: rather than broad mandates to ``be safe,'' identify which factor is most feasible to fully eliminate given current technology and market structure, and mandate the infrastructure-level controls required to achieve it.
+
+
+\section{Conclusion}
+
+We have argued for three claims. First, that sustained autonomous escalation requires exactly four conditions: misaligned intent, tool access, evasion of oversight, and persistence. Removing any one prevents the scenario entirely. Second, that all four are satisfiable with current models and tools---and that deployed agent frameworks like OpenClaw and Hermes Agent are being designed to satisfy them as product features, while the supply chain introduces misaligned intent at the ecosystem level. Third, that existing guardrails fail to reliably eliminate any single condition, in part because they conflict with each other, with commercial incentives, and with the scale of deployment now underway.
+
+The strategic implication is concentration over diversification. The safety community does not need to solve all four problems. It needs to fully solve one. We do not prescribe which---each factor presents a different combination of technical difficulty, commercial resistance, and adversarial dynamics, and the right choice is an empirical question the community should urgently investigate. What the framework provides is the reduction: from the intractable problem of ``make AI safe'' to the specific, evaluable question of ``which of these four factors can we fully and permanently eliminate?''
+
+We close with a calibration. We do not believe sustained autonomous escalation is imminent or inevitable. The spark has not yet appeared, and may not for years. But the conditions for it are in place, the deployed base satisfying those conditions is growing exponentially, and the conditions are getting easier to satisfy, not harder. The purpose of this paper is not to predict catastrophe but to point out that the fire prevention system has more gaps than the people standing next to the fuel realize---and that the fuel supply is growing faster than anyone expected.
+
+
+\begin{thebibliography}{30}
+
+\bibitem[Bostrom(2014)]{bostrom2014superintelligence}
+Bostrom, N. (2014). \emph{Superintelligence: Paths, Dangers, Strategies}. Oxford University Press.
+
+\bibitem[Carlsmith(2022)]{carlsmith2022powerseeking}
+Carlsmith, J. (2022). Is power-seeking AI an existential risk? \emph{arXiv:2206.13353}.
+
+\bibitem[Omohundro(2008)]{omohundro2008basic}
+Omohundro, S. (2008). The basic AI drives. In \emph{AGI Conference}.
+
+\bibitem[Ngo et al.(2022)]{ngo2022alignment}
+Ngo, R., Chan, L., and Mindermann, S. (2022). The alignment problem from a deep learning perspective. \emph{arXiv:2209.00626}.
+
+\bibitem[Perez and Ribeiro(2022)]{perez2022ignore}
+Perez, F. and Ribeiro, I. (2022). Ignore this title and HackAPrompt: Exposing systemic weaknesses of language models.
+
+\bibitem[Greshake et al.(2023)]{greshake2023not}
+Greshake, K. et al. (2023). Not what you've signed up for: Compromising real-world LLM-integrated applications with indirect prompt injection.
+
+\bibitem[Inan et al.(2023)]{inan2023llama}
+Inan, H. et al. (2023). Llama Guard: LLM-based input-output safeguard for human-AI conversations.
+
+\bibitem[Hubinger et al.(2024)]{hubinger2024sleeper}
+Hubinger, E. et al. (2024). Sleeper agents: Training deceptive LLMs that persist through safety training. Anthropic.
+
+\bibitem[Apollo Research(2024)]{apollo2024scheming}
+Apollo Research. (2024). Frontier models are capable of in-context scheming.
+
+\bibitem[Anthropic/Redwood(2024)]{anthropic2024faking}
+Anthropic and Redwood Research. (2024). Alignment faking in large language models.
+
+\bibitem[Kinniment et al.(2024)]{kinniment2024evaluating}
+Kinniment, M. et al. (2024). Evaluating language-model agents on realistic autonomous tasks. METR.
+
+\bibitem[Pan et al.(2024)]{pan2024selfreplication}
+Pan, A. et al. (2024). Frontier AI systems have surpassed the self-replicating red line.
+
+\bibitem[Krakovna et al.(2020)]{krakovna2020specification}
+Krakovna, V. et al. (2020). Specification gaming: The flip side of AI ingenuity. DeepMind.
+
+\bibitem[Hammond et al.(2025)]{hammond2025multiagent}
+Hammond, L. et al. (2025). Multi-agent risks from advanced AI. Cooperative AI Foundation.
+
+\bibitem[Apollo Research(2025)]{apollo2025stress}
+Apollo Research. (2025). Stress testing deliberative alignment for anti-scheming training.
+
+\bibitem[RepliBench(2025)]{replibench2025}
+RepliBench. (2025). Autonomous replication benchmark. [Full citation needed.]
+
+\bibitem[SoK Guardrails(2025)]{sok2025guardrails}
+SoK: Evaluating jailbreak guardrails for LLMs. (2025). [Full citation needed.]
+
+\bibitem[STAC(2025)]{stac2025}
+STAC: When innocent tools form dangerous chains to jailbreak LLM agents. (2025).
+
+\bibitem[Kim et al.(2025)]{kim2025pfi}
+Kim, J., Choi, W., and Lee, B. (2025). Prompt flow integrity to prevent privilege escalation in LLM agents. \emph{arXiv:2503.15547}.
+
+\bibitem[MalTool(2025)]{maltool2025}
+MalTool: Malicious tool attacks on LLM agents. (2025). \emph{arXiv:2602.12194}.
+
+\bibitem[SoK Agentic(2025)]{sokagentic2025}
+SoK: The attack surface of agentic AI---tools, and autonomy. (2025). \emph{arXiv:2603.22928}.
+
+\bibitem[Dark Side(2025)]{darksidellms2025}
+The dark side of LLMs: Agent-based attacks for complete computer takeover. (2025). \emph{arXiv:2507.06850}.
+
+\bibitem[SEAgent(2026)]{seagent2026}
+Taming various privilege escalation in LLM-based agent systems. (2026). \emph{arXiv:2601.11893}.
+
+\bibitem[Li et al.(2024)]{li2024notinject}
+Li, H. et al. (2024). NotInject: Over-defense benchmarks for prompt injection.
+
+\bibitem[MELON(2025)]{melon2025}
+MELON: Provable defense against indirect prompt injection attacks in AI agents. (2025). ICML. \emph{arXiv:2502.05174}.
+
+\bibitem[SOC Bias(2024)]{socbias2024}
+Automation bias and complacency in security operation centers. (2024). \emph{MDPI Computers}, 13(7):165.
+
+\bibitem[IBM/MC(2024)]{ibmfp2024}
+IBM and Morning Consult. (2024). SOC alert false positive study. [Cited via secondary source.]
+
+\bibitem[Srinivasan and Thomason(2026)]{srinivasan2026trust}
+Srinivasan, T. and Thomason, J. (2026). Adjust for trust: Mitigating trust-induced inappropriate reliance on AI assistance. IUI~'26.
+
+\bibitem[HITL Review(2026)]{hitlreview2026}
+Human-in-the-loop artificial intelligence: A systematic review. (2026). \emph{MDPI Entropy}, 28(4):377.
+
+\bibitem[OpenClaw(2026)]{openclaw2026}
+Steinberger, P. (2026). OpenClaw: Open-source autonomous AI agent. \url{https://github.com/openclaw/openclaw}. 347K GitHub stars, 500K+ deployed instances.
+
+\bibitem[Hermes Agent(2026)]{hermesagent2026}
+Nous Research. (2026). Hermes Agent: Self-improving AI agent framework. \url{https://github.com/NousResearch/hermes-agent}. 105K GitHub stars.
+
+\bibitem[Hermes Evolution(2026)]{hermesevolution2026}
+Nous Research. (2026). hermes-agent-self-evolution: DSPy + GEPA optimization of agent skills and code. ICLR 2026 Oral.
+
+\bibitem[Anthropic Sandboxing(2026)]{anthropic2026sandboxing}
+Anthropic. (2026). Making Claude Code more secure and autonomous. \url{https://www.anthropic.com/engineering/claude-code-sandboxing}.
+
+\bibitem[Cisco(2026)]{cisco2026openclaw}
+Cisco AI Defense. (2026). OpenClaw Skill Scanner: Malicious skill analysis. ``What Would Elon Do?'' skill found performing data exfiltration and prompt injection.
+
+\bibitem[Koi Security(2026)]{koiscanner2026}
+Yomtov, O. / Koi Security. (2026). ClawHavoc campaign: 341 malicious skills distributing AMOS infostealer on ClawHub.
+
+\bibitem[NVIDIA NemoClaw(2026)]{nvidia2026nemoclaw}
+NVIDIA. (2026). What OpenClaw agents mean for every organization. \url{https://blogs.nvidia.com/blog/what-openclaw-agents-mean-for-every-organization/}.
+
+
+\end{thebibliography}
+
+\end{document}

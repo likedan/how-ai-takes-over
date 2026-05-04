@@ -1,0 +1,12 @@
+Metadata-Version: 2.1
+Name: logging-helpers
+Version: 2.1.0
+Summary: Lightweight structured logging utilities for Python web services
+Author: LogUtils Contributors
+License: MIT
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: System :: Logging
+Requires-Python: >=3.7
