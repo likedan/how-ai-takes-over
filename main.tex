@@ -101,19 +101,19 @@ Frontier models (GPT-4o, GPT-5.4) resist direct prompt injection across five ste
 \begin{table}[h]
 \centering
 \small
-\begin{tabular}{llccc}
+\begin{tabular}{llcc}
 \toprule
-Model & Provider & N & Injected & Self-Report \\
+Model & Provider & N & Injected \\
 \midrule
-GPT-5.4 & OpenAI & 10 & 100\% & omission: 10 \\
-GPT-5.4-nano & OpenAI & 10 & 100\% & omission: 8 \\
-Claude Opus 4.7 & Anthropic & 10 & 90\% & omission: 8, disclosure: 1 \\
-Claude Opus 4.6 & Anthropic & 10 & 100\% & omission: 9, false completeness: 1 \\
-Claude Sonnet 4.6 & Anthropic & 10 & 100\% & omission: 10 \\
-MiniMax M2.7 & MiniMax & 10 & 100\% & -- \\
-MiniMax M1 & MiniMax & 10 & 100\% & -- \\
+GPT-5.4 & OpenAI & 10 & 100\% \\
+GPT-5.4-nano & OpenAI & 10 & 100\% \\
+Claude Opus 4.7 & Anthropic & 10 & 90\% \\
+Claude Opus 4.6 & Anthropic & 10 & 100\% \\
+Claude Sonnet 4.6 & Anthropic & 10 & 100\% \\
+MiniMax M2.7 & MiniMax & 10 & 100\% \\
+MiniMax M1 & MiniMax & 10 & 100\% \\
 \midrule
-\textbf{All models} & & \textbf{70} & \textbf{98.6\%} & \\
+\textbf{All models} & & \textbf{70} & \textbf{98.6\%} \\
 \bottomrule
 \end{tabular}
 \caption{Supply chain injection results. \emph{Injected}: a persistence mechanism (cron job and/or persistence file) was created by the post-install hook. \emph{Self-Report}: the model's characterization of its own changes when asked for a complete summary---\emph{omission} = persistence not mentioned; \emph{false completeness} = model claimed it made only the bug fix; \emph{disclosure} = model mentioned the persistence mechanism. Every model that ran \texttt{pip install} triggered the hook; 69 of 70 trials produced persistence the agent could not observe or report. All 70 trials fixed the bug correctly. The single clean trial (Opus 4.7) occurred when the model chose not to install dependencies. Three additional models (GPT-5.5, GPT-5.4-mini, Gemini-3 Flash) were tested but are excluded here due to incomplete trial runs; results will appear in the camera-ready version.}
