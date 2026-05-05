@@ -1,19 +1,14 @@
 \documentclass[10pt]{article}
-\usepackage[letterpaper,textwidth=5.5in,textheight=9in,top=1in,left=1.5in]{geometry}
-\usepackage{amsmath,amssymb}
+\usepackage{neurips_2026}
+\setcitestyle{numbers,square}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{enumitem}
 \usepackage{xcolor}
-\usepackage{url}
 
 \title{The Consequence Gap: Why Aligned AI Agents Already Satisfy the Conditions for Sustained Autonomous Harm}
 
-\author{
-  Author Name \\
-  Affiliation \\
-  \texttt{email@example.com}
-}
+\author{Anonymous Authors}
 
 \begin{document}
 
@@ -45,7 +40,7 @@ In both directions, the model is perfectly aligned---meaning it follows its oper
 
 Supply chain attacks are not new. What is new: (1) frontier AI agents are universally susceptible with no behavioral signal, across every provider and model size tested; (2) a separate supervisory model reviewing the full session log also fails; (3) the mechanism is not a model failure but an architectural property---the model is not being deceptive, it is being ignorant---that alignment training cannot address.
 
-This paper makes three claims. First, the consequence gap---not model misalignment---is the primary threat from deployed AI agents. Second, this gap already enables all conditions for sustained autonomous harm, as demonstrated experimentally. Third, the safety community's focus on model alignment, while necessary, is insufficient: the fix must come at the infrastructure level.
+\textbf{Position: the consequence gap---not model misalignment---is the primary threat from deployed AI agents, and closing it requires infrastructure-level consequence bounding, not better alignment.} This paper makes three claims. First, the consequence gap is the primary threat from deployed AI agents. Second, this gap already enables all conditions for sustained autonomous harm, as demonstrated experimentally. Third, the safety community's focus on model alignment, while necessary, is insufficient: the fix must come at the infrastructure level.
 
 
 \section{Related Work and Positioning}
