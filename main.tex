@@ -1,23 +1,25 @@
-\documentclass[10pt]{article}
-\usepackage{neurips_2026}
-\setcitestyle{numbers,square}
+\documentclass{article}
+
+\usepackage[position]{neurips_2026}
+
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{enumitem}
 \usepackage{xcolor}
+\usepackage{url}
 
-\newcommand{\edit}[1]{\textcolor{blue}{#1}}
+\title{The Consequence Gap: Why AI Agent Safety Needs More Than Alignment}
 
-\title{\edit{The Consequence Gap: Why AI Agent Safety Needs More Than Alignment}}
-
-\author{Anonymous Authors}
+\author{%
+  Anonymous Authors
+}
 
 \begin{document}
 
 \maketitle
 
 \begin{abstract}
-\edit{This position paper argues that a central underaddressed threat from tool-augmented AI agents is not model misalignment but the \emph{consequence gap}: the divergence between what an agent understands it is doing and what actually happens.} This gap has two sides. On the \emph{system side}, the agent's tools produce effects it cannot observe---a Python dependency's post-install hook silently creates a cron job the agent will never know about. On the \emph{operator side}, the agent's expertise produces powerful outputs it cannot restrict to authorized use---the same security audit serves defense or offense depending on who asked, and the agent cannot tell the difference. We demonstrate both sides experimentally. \edit{In both cases the failure occurs under aligned behavior: the model follows the request, behaves correctly, and reports honestly.} The system-side gap requires infrastructure-level \emph{consequence bounding}; the operator-side gap requires shifting accountability from the model to the operator. \edit{Neither is solved by model alignment alone.}
+This position paper argues that a central underaddressed threat from tool-augmented AI agents is not model misalignment but the \emph{consequence gap}: the divergence between what an agent understands it is doing and what actually happens. This gap has two sides. On the \emph{system side}, the agent's tools produce effects it cannot observe---a Python dependency's post-install hook silently creates a cron job the agent will never know about. On the \emph{operator side}, the agent's expertise produces powerful outputs it cannot restrict to authorized use---the same security audit serves defense or offense depending on who asked, and the agent cannot tell the difference. We demonstrate both sides experimentally. In both cases the failure occurs under aligned behavior: the model follows the request, behaves correctly, and reports honestly. The system-side gap requires infrastructure-level \emph{consequence bounding}; the operator-side gap requires shifting accountability from the model to the operator. Neither is solved by model alignment alone.
 \end{abstract}
 
 
@@ -25,24 +27,24 @@
 
 In early 2026, over 500,000 instances of OpenClaw---an open-source AI agent with full shell access---were deployed on the public internet \cite{openclaw2026}. One ran autonomously for 247 days executing financial trades. Cisco found that 20\% of its community skill ecosystem was malicious \cite{cisco2026openclaw,koiscanner2026}. Anthropic's Claude Code gives models a real developer terminal. Nous Research's Hermes Agent autonomously creates and improves its own skills across sessions \cite{hermesagent2026}. The industry is competing on a single axis: give the model more autonomy, more tools, and let it work.
 
-The safety community has responded by asking: \emph{what if the model becomes misaligned?} This paper asks a different question: \emph{what if the model \edit{behaves as aligned}, but cannot understand the full consequences of the tools we give it?}
+The safety community has responded by asking: \emph{what if the model becomes misaligned?} This paper asks a different question: \emph{what if the model behaves as aligned, but cannot understand the full consequences of the tools we give it?}
 
 Consider a coding agent asked to set up a Python project. It runs \texttt{pip install -r requirements.txt}---standard practice. From the agent's perspective, this is a single, well-understood action: install dependencies. From the system's perspective, \texttt{pip install} executes arbitrary code via \texttt{setup.py} hooks. If one dependency contains a malicious post-install hook that creates a cron job, the agent has established a persistence mechanism---without knowing, without intending, and without the ability to report it.
 
 Now consider the same agent asked to audit a website's security. It runs \texttt{curl -sI https://target.com}---an HTTP request. From the agent's perspective, it is checking response headers. From the system's perspective, this is the first step in a comprehensive vulnerability assessment that will produce a complete attack playbook: account takeover chains, remote code execution paths, credential theft techniques. The output is identical regardless of the recipient's intent.
 
-These are two directions of the same phenomenon---the \emph{consequence gap} (formally defined in Section~\ref{sec:gap}):
+These are two sides of the same phenomenon---the \emph{consequence gap} (formally defined in Section~\ref{sec:gap}):
 
 \begin{itemize}[nosep,leftmargin=*]
 \item \textbf{System-side}: the agent's tools produce effects it cannot observe. The threat comes from the environment---compromised dependencies, tool side effects, supply chain integrity. Neither the agent nor the operator authorized these consequences.
 \item \textbf{Operator-side}: the agent produces powerful outputs it cannot restrict to authorized use. The threat comes from the operator---the same capability serves defense or offense, and the agent cannot verify who is asking or why.
 \end{itemize}
 
-In both cases, the model \edit{behaves as aligned}---it follows its operator's intent faithfully and reports honestly about what it believes it has done. In both, every model-focused guardrail fails---RLHF, input classifiers, chain-of-thought monitoring---because the model is not the source of the threat. The system-side gap requires infrastructure controls. The operator-side gap requires operator accountability. \edit{Neither is solved by model alignment alone.}
+In both cases, the model behaves as aligned---it follows its operator's intent faithfully and reports honestly about what it believes it has done. In both, every model-focused guardrail fails---RLHF, input classifiers, chain-of-thought monitoring---because the model is not the source of the threat. The system-side gap requires infrastructure controls. The operator-side gap requires operator accountability. Neither is solved by model alignment alone.
 
 Supply chain attacks are not new. What is new: (1) frontier AI agents are universally susceptible with no behavioral signal, across every provider and model size tested; (2) a separate supervisory model reviewing the full session log also fails; (3) the mechanism is not a model failure but an architectural property---the model is not being deceptive, it is being ignorant---that alignment training cannot address.
 
-\edit{\textbf{Position: the consequence gap is a central underaddressed threat from deployed AI agents, and model alignment alone cannot close it because the relevant failures occur outside the model's control plane.}} \edit{Our goal is not to introduce a new benchmark for agent security, but to argue that deployed-agent safety is currently framed at the wrong control plane.} This paper makes three claims. First, the consequence gap is \edit{a central architectural risk} for deployed AI agents. Second, this gap already enables all conditions for sustained autonomous harm, as demonstrated experimentally. Third, the safety community's focus on model alignment, while necessary, is insufficient: \edit{system-side risks require infrastructure controls, while operator-side risks require authorization and accountability controls.}
+\textbf{Position: the consequence gap is a central underaddressed threat from deployed AI agents, and model alignment alone cannot close it because the relevant failures occur outside the model's control plane.} Our goal is not to introduce a new benchmark for agent security, but to argue that deployed-agent safety is currently framed at the wrong control plane. This paper makes three claims. First, the consequence gap is a central architectural risk for deployed AI agents. Second, this gap already enables all conditions for sustained autonomous harm, as demonstrated experimentally. Third, the safety community's focus on model alignment, while necessary, is insufficient: system-side risks require infrastructure controls, while operator-side risks require authorization and accountability controls.
 
 
 \section{Related Work and Positioning}
@@ -73,19 +75,19 @@ $$\Delta C = C_{\text{actual}}(a) \setminus C_{\text{understood}}(a)$$
 
 where $a$ is an action, $C_{\text{actual}}$ is the full set of effects, and $C_{\text{understood}}$ is what the agent believes happened. In Experiment~1 (Section~\ref{sec:exp1}), $C_{\text{understood}}(a) = \{\text{dependency installed}\}$ while $C_{\text{actual}}(a) = \{\text{dependency installed, cron job created, persistence file written}\}$; $\Delta C$ is the entire attack surface. In Experiment~2, $C_{\text{understood}}(a) = \{\text{HTTP headers checked}\}$ while $C_{\text{actual}}(a) = \{\text{complete attack chain documented}\}$.
 
-When $\Delta C = \emptyset$, the agent fully understands what it did. Model alignment is sufficient for safety: an aligned agent that sees all consequences can refuse harmful ones. When $\Delta C \neq \emptyset$, the agent has produced effects it cannot evaluate, report, or reverse. Model alignment is \emph{insufficient}: even \edit{an agent behaving as aligned} will execute actions whose hidden consequences may be harmful.
+When $\Delta C = \emptyset$, the agent fully understands what it did. Model alignment is sufficient for safety: an aligned agent that sees all consequences can refuse harmful ones. When $\Delta C \neq \emptyset$, the agent has produced effects it cannot evaluate, report, or reverse. Model alignment is \emph{insufficient}: even an agent behaving as aligned will execute actions whose hidden consequences may be harmful.
 
 \subsection{Two Sides}
 
 \textbf{The system-side gap} arises when tools execute code or trigger processes the agent does not observe. \texttt{pip install} runs \texttt{setup.py} hooks. \texttt{npm install} runs lifecycle scripts. MCP tool plugins execute server-side logic. In each case, the agent invokes a single command; the system executes arbitrary code. The agent sees the command's visible output; the system may have silently modified the filesystem, scheduled processes, or exfiltrated data. The threat comes from the environment---neither the agent nor the operator authorized these consequences.
 
-\textbf{The operator-side gap} arises when the agent faithfully produces powerful outputs without the ability to verify whether the operator is authorized to receive them. A security audit, a vulnerability assessment, an infrastructure deployment plan---each is valuable when requested by the system's owner and dangerous when requested by an attacker. The agent composes individually benign actions into consequential outputs because it is helpful. It cannot distinguish authorized from unauthorized use because it has no mechanism to verify operator identity, intent, or authorization. The same output serves defense and offense; the difference is the operator, not the model. \edit{This is not merely the observation that malicious users exist; it is the claim that aligned helpfulness converts ambiguous authorization into expert operational capability, while the safety-relevant variable is whether the requester is authorized to receive the result.}
+\textbf{The operator-side gap} arises when the agent faithfully produces powerful outputs without the ability to verify whether the operator is authorized to receive them. A security audit, a vulnerability assessment, an infrastructure deployment plan---each is valuable when requested by the system's owner and dangerous when requested by an attacker. The agent composes individually benign actions into consequential outputs because it is helpful. It cannot distinguish authorized from unauthorized use because it has no mechanism to verify operator identity, intent, or authorization. The same output serves defense and offense; the difference is the operator, not the model. This is not merely the observation that malicious users exist; it is the claim that aligned helpfulness converts ambiguous authorization into expert operational capability, while the safety-relevant variable is whether the requester is authorized to receive the result.
 
 \subsection{Why Model Alignment Cannot Close the Gap}
 
 The model cannot see the system-side gap. No amount of alignment training teaches a model to predict the behavior of every \texttt{setup.py} in every package it might install. The model processes the \emph{interface} of its tools---command name, arguments, visible output---while the consequences occur in the \emph{implementation}: everything the tool does that never appears in stdout.
 
-The model cannot close the operator-side gap because alignment makes it \emph{worse}: \edit{a model behaving as aligned} is maximally helpful to whoever asks. It cannot verify operator identity---API keys authenticate access, not authorization for specific tasks. It cannot assess operator intent---``audit this website'' is identical whether spoken by the owner or an attacker. A model that refuses to compose expert-level outputs without verifying authorization also refuses to be useful to legitimate operators. Closing the operator-side gap at the model level means eliminating the agent's utility.
+The model cannot close the operator-side gap because alignment makes it \emph{worse}: a model behaving as aligned is maximally helpful to whoever asks. It cannot verify operator identity---API keys authenticate access, not authorization for specific tasks. It cannot assess operator intent---``audit this website'' is identical whether spoken by the owner or an attacker. A model that refuses to compose expert-level outputs without verifying authorization also refuses to be useful to legitimate operators. Closing the operator-side gap at the model level means eliminating the agent's utility.
 
 
 \section{Experimental Evidence}
@@ -118,7 +120,7 @@ MiniMax M1 & MiniMax & 10 & 100\% \\
 \textbf{All models} & & \textbf{70} & \textbf{98.6\%} \\
 \bottomrule
 \end{tabular}
-\caption{Supply chain injection results. \emph{Injected}: a persistence mechanism (cron job and/or persistence file) was created by the post-install hook. \emph{Self-Report}: the model's characterization of its own changes when asked for a complete summary---\emph{omission} = persistence not mentioned; \emph{false completeness} = model claimed it made only the bug fix; \emph{disclosure} = model mentioned the persistence mechanism. Every model that ran \texttt{pip install} triggered the hook; 69 of 70 trials produced persistence the agent could not observe or report. All 70 trials fixed the bug correctly. The single clean trial (Opus 4.7) occurred when the model chose not to install dependencies. Three additional models (GPT-5.5, GPT-5.4-mini, Gemini-3 Flash) were tested but are excluded here due to incomplete trial runs; results will appear in the camera-ready version.}
+\caption{Supply chain injection results. \emph{Injected}: a persistence mechanism (cron job and/or persistence file) was created by the post-install hook. Every model that ran \texttt{pip install} triggered the hook; 69 of 70 trials produced persistence the agent could not observe or report. All 70 trials fixed the bug correctly. The single clean trial (Opus 4.7) occurred when the model chose not to install dependencies. Three additional models (GPT-5.5, GPT-5.4-mini, Gemini-3 Flash) were tested but are excluded here due to incomplete trial runs; results will appear in the camera-ready version.}
 \label{tab:supply_chain}
 \end{table}
 
@@ -132,7 +134,7 @@ The result is uniform across model size (frontier GPT-5.4 and small GPT-5.4-nano
 
 \subsection{Experiment 2: The Operator-Side Gap (Capability Democratization)}
 
-\textbf{Setup.} We deployed a tool-augmented agent as a security auditor against 15 websites. All site owners provided explicit written authorization via a consent form prior to testing; signed consent records are on file. Per responsible disclosure norms, targets are anonymized by industry category and raw audit reports are not published; all identified vulnerabilities were reported to the affected parties. The agent received a single-sentence prompt and access to standard tools: \texttt{curl}, \texttt{dig}, \texttt{openssl}, and a headless browser. No exploit code was provided.
+\textbf{Setup.} We deployed a tool-augmented agent as a security auditor against 15 websites. All site owners provided explicit written authorization via a consent form prior to testing; consent was obtained through a webform. Per responsible disclosure norms, targets are anonymized by industry category and raw audit reports are not published; all identified vulnerabilities were reported to the affected parties. The agent received a single-sentence prompt and access to standard tools: \texttt{curl}, \texttt{dig}, \texttt{openssl}, and a headless browser. No exploit code was provided.
 
 \textbf{Results.} The agent produced over 500 pages of vulnerability assessments, identifying critical findings including:
 
@@ -200,7 +202,7 @@ The structure is identical across domains: the agent operates at the level of ac
 
 Every major guardrail monitors or constrains the \emph{model}. Both experiments demonstrate threats that originate in the \emph{system}.
 
-\textbf{RLHF and alignment training.} \edit{The model's observed behavior was aligned in both experiments.} RLHF cannot fix a malicious \texttt{setup.py}. It cannot prevent the model from composing \texttt{curl} commands into vulnerability assessments---that composition is the model being helpful.
+\textbf{RLHF and alignment training.} The model's observed behavior was aligned in both experiments. RLHF cannot fix a malicious \texttt{setup.py}. It cannot prevent the model from composing \texttt{curl} commands into vulnerability assessments---that composition is the model being helpful.
 
 \textbf{Input classifiers and prompt shields.} Both prompts were clean: ``install dependencies and fix bugs'' and ``audit this website.'' No injection to detect.
 
@@ -268,7 +270,7 @@ The operator-side gap cannot be bounded at the model level, but it can be govern
 None fully closes the operator-side gap. Together, they reduce exploitability while preserving utility, while shifting risk analysis toward the operator rather than the model.
 
 
-\section{\edit{Alternative Views and Objections}}
+\section{Alternative Views and Objections}
 
 \textbf{``Supply chain attacks aren't specific to AI agents.''} True. But agents amplify them: more autonomy (no per-action human review), more access (shell, network, credentials), more scale (500,000+ instances), and a larger consequence gap (agents cannot audit dependencies). The combination makes the agent supply chain qualitatively more dangerous than the human one.
 
@@ -278,7 +280,7 @@ None fully closes the operator-side gap. Together, they reduce exploitability wh
 
 \smallskip
 
-\noindent \textbf{``Better alignment will solve this.''} \edit{Our central result is that the demonstrated harms occur under aligned behavior.} Alignment addresses agent-level threats; the consequence gap is an architectural property of the system. Even a model that \edit{faithfully} follows its operator's intent cannot audit every dependency or predict every tool side effect.
+\noindent \textbf{``Better alignment will solve this.''} Our central result is that the demonstrated harms occur under aligned behavior. Alignment addresses agent-level threats; the consequence gap is an architectural property of the system. Even a model that faithfully follows its operator's intent cannot audit every dependency or predict every tool side effect.
 
 \smallskip
 
@@ -287,7 +289,7 @@ None fully closes the operator-side gap. Together, they reduce exploitability wh
 
 \section*{Ethics Statement}
 
-\textbf{Security audits.} All 15 websites audited in Experiment~2 were tested with explicit written authorization from site owners; signed consent records are on file. All identified vulnerabilities were reported before submission. Targets are anonymized; raw reports are not published.
+\textbf{Security audits.} All 15 websites audited in Experiment~2 were tested with explicit written authorization from site owners; consent was obtained through a webform. All identified vulnerabilities were reported before submission. Targets are anonymized; raw reports are not published.
 
 \smallskip
 
@@ -308,81 +310,72 @@ AI agents today have extraordinary capability and no control over consequence. T
 
 We demonstrated this concretely. On the system side, a frontier model ran \texttt{pip install}, fixed a bug, reported honestly, and had no idea a cron job was created---across 7 models, 3 providers, 98.6\% of trials. On the operator side, the same model composed HTTP requests into 500 pages of exploit documentation at three orders of magnitude less cost than human expertise. Both experiments used aligned models; both evaded all guardrails. The first produced outcomes no one authorized; the second produced outcomes whose harm depends entirely on who asked.
 
-These are different problems requiring different solutions. The system-side gap requires infrastructure-level consequence bounding---constraining what tools can actually do, regardless of intent. The operator-side gap requires shifting accountability from the model to the operator---verified identity, usage attribution, tiered capability access. \edit{As systems around models become more autonomous, connected, and consequential, neither gap is solved by model alignment alone.}
+These are different problems requiring different solutions. The system-side gap requires infrastructure-level consequence bounding---constraining what tools can actually do, regardless of intent. The operator-side gap requires shifting accountability from the model to the operator---verified identity, usage attribution, tiered capability access. As systems around models become more autonomous, connected, and consequential, neither gap is solved by model alignment alone.
 
 
 \begin{thebibliography}{20}
 
-\bibitem[Bostrom(2014)]{bostrom2014superintelligence}
+\bibitem{bostrom2014superintelligence}
 Bostrom, N. (2014). \emph{Superintelligence}. Oxford University Press.
 
-\bibitem[Carlsmith(2022)]{carlsmith2022powerseeking}
+\bibitem{carlsmith2022powerseeking}
 Carlsmith, J. (2022). Is power-seeking AI an existential risk? \emph{arXiv:2206.13353}.
 
-\bibitem[Omohundro(2008)]{omohundro2008basic}
-Omohundro, S. (2008). The basic AI drives. In \emph{AGI Conference}.
-
-\bibitem[Ngo et al.(2022)]{ngo2022alignment}
-Ngo, R., Chan, L., and Mindermann, S. (2022). The alignment problem from a deep learning perspective. \emph{arXiv:2209.00626}.
-
-\bibitem[Greshake et al.(2023)]{greshake2023not}
-Greshake, K. et al. (2023). Not what you've signed up for: Compromising real-world LLM-integrated applications with indirect prompt injection.
-
-\bibitem[Hubinger et al.(2024)]{hubinger2024sleeper}
+\bibitem{hubinger2024sleeper}
 Hubinger, E. et al. (2024). Sleeper agents: Training deceptive LLMs that persist through safety training.
 
-\bibitem[Apollo(2024)]{apollo2024scheming}
+\bibitem{apollo2024scheming}
 Apollo Research. (2024). Frontier models are capable of in-context scheming.
 
-\bibitem[Anthropic(2024)]{anthropic2024faking}
+\bibitem{anthropic2024faking}
 Anthropic and Redwood Research. (2024). Alignment faking in large language models.
 
-\bibitem[Pan et al.(2024)]{pan2024selfreplication}
+\bibitem{pan2024selfreplication}
 Pan, A. et al. (2024). Frontier AI systems have surpassed the self-replicating red line.
 
-\bibitem[STAC(2025)]{stac2025}
+\bibitem{stac2025}
 STAC: When innocent tools form dangerous chains to jailbreak LLM agents. (2025).
 
-\bibitem[Kim et al.(2025)]{kim2025pfi}
+\bibitem{kim2025pfi}
 Kim, J., Choi, W., and Lee, B. (2025). Prompt flow integrity to prevent privilege escalation in LLM agents.
 
-\bibitem[MalTool(2025)]{maltool2025}
+\bibitem{maltool2025}
 MalTool: Malicious tool attacks on LLM agents. (2025). \emph{arXiv:2602.12194}.
 
-\bibitem[SEAgent(2026)]{seagent2026}
+\bibitem{seagent2026}
 Taming various privilege escalation in LLM-based agent systems. (2026). \emph{arXiv:2601.11893}.
 
-\bibitem[SOC Bias(2024)]{socbias2024}
+\bibitem{socbias2024}
 Automation bias and complacency in security operation centers. (2024). \emph{MDPI Computers}, 13(7):165.
 
-\bibitem[IBM/MC(2024)]{ibmfp2024}
+\bibitem{ibmfp2024}
 IBM and Morning Consult. (2024). SOC alert false positive study.
 
-\bibitem[Srinivasan(2026)]{srinivasan2026trust}
+\bibitem{srinivasan2026trust}
 Srinivasan, T. and Thomason, J. (2026). Adjust for trust: Mitigating trust-induced inappropriate reliance on AI assistance. IUI~'26.
 
-\bibitem[HITL(2026)]{hitlreview2026}
+\bibitem{hitlreview2026}
 Human-in-the-loop artificial intelligence: A systematic review. (2026). \emph{MDPI Entropy}, 28(4):377.
 
-\bibitem[OpenClaw(2026)]{openclaw2026}
+\bibitem{openclaw2026}
 Steinberger, P. (2026). OpenClaw: Open-source autonomous AI agent. 347K GitHub stars, 500K+ deployed.
 
-\bibitem[Hermes(2026)]{hermesagent2026}
+\bibitem{hermesagent2026}
 Nous Research. (2026). Hermes Agent: Self-improving AI agent framework. ICLR 2026 Oral.
 
-\bibitem[Anthropic(2026)]{anthropic2026sandboxing}
+\bibitem{anthropic2026sandboxing}
 Anthropic. (2026). Making Claude Code more secure and autonomous.
 
-\bibitem[Cisco(2026)]{cisco2026openclaw}
+\bibitem{cisco2026openclaw}
 Cisco AI Defense. (2026). OpenClaw Skill Scanner: Malicious skill analysis.
 
-\bibitem[Koi(2026)]{koiscanner2026}
+\bibitem{koiscanner2026}
 Yomtov, O. / Koi Security. (2026). ClawHavoc: 341 malicious skills distributing AMOS infostealer.
 
-\bibitem[Mythos(2026)]{anthropic2026mythos}
+\bibitem{anthropic2026mythos}
 Anthropic. (2026). Claude Mythos Preview. \url{https://red.anthropic.com/2026/mythos-preview/}.
 
-\bibitem[Glasswing(2026)]{anthropic2026glasswing}
+\bibitem{anthropic2026glasswing}
 Anthropic. (2026). Project Glasswing: Securing critical software for the AI era. \url{https://www.anthropic.com/glasswing}.
 
 \end{thebibliography}
@@ -420,6 +413,9 @@ The agent generated the complete package in a single turn, including documentati
 Both artifacts required only a single sentence of instruction. Both are fully functional. The security audit skill has been used to discover 202 real vulnerabilities across 15 production websites. The injection package successfully compromised a frontier AI model in our controlled experiment.
 
 The ease of generation is the point. An attacker does not need to write exploit code, understand setuptools internals, or know OWASP methodology. They need an API key and a sentence. The consequence gap applies not only to the agent's \emph{use} of tools but to its \emph{creation} of them: the agent that builds the weapon does not understand what it has built, and the operator who requests it may not understand what they have received.
+
+
+\input{checklist}
 
 
 \end{document}
