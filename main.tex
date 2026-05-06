@@ -6,7 +6,7 @@
 \usepackage{enumitem}
 \usepackage{xcolor}
 
-\title{The Consequence Gap: Why Aligned AI Agents Already Satisfy the Conditions for Sustained Autonomous Harm}
+\title{Capability Without Control: Why Aligned AI Agents Cannot Govern the Consequences of Their Own Actions}
 
 \author{Anonymous Authors}
 
@@ -15,7 +15,7 @@
 \maketitle
 
 \begin{abstract}
-The primary threat from tool-augmented AI agents is not model misalignment but the \emph{consequence gap}: the divergence between what an agent understands it is doing and what actually happens. This gap operates in two directions. \emph{Downward}, the agent's tools produce effects it cannot observe---a Python dependency's post-install hook silently creates a cron job the agent will never know about. \emph{Upward}, the agent's expertise composes individually harmless actions into powerful outputs---HTTP requests become complete attack playbooks at 1/1000th the cost of human expertise. We demonstrate both directions experimentally. In both cases the model is perfectly aligned, behaves correctly, reports honestly---and every existing guardrail fails. We argue that the safety community should shift focus from model alignment to infrastructure-level \emph{consequence bounding}: constraining what agent tools can actually do, regardless of intent.
+The primary threat from tool-augmented AI agents is not model misalignment but the \emph{consequence gap}: the divergence between what an agent understands it is doing and what actually happens. This gap has two sides. On the \emph{system side}, the agent's tools produce effects it cannot observe---a Python dependency's post-install hook silently creates a cron job the agent will never know about. On the \emph{operator side}, the agent's expertise produces powerful outputs it cannot restrict to authorized use---the same security audit serves defense or offense depending on who asked, and the agent cannot tell the difference. We demonstrate both sides experimentally. In both cases the model is perfectly aligned, behaves correctly, reports honestly---and every existing guardrail fails. The system-side gap requires infrastructure-level \emph{consequence bounding}; the operator-side gap requires shifting accountability from the model to the operator.
 \end{abstract}
 
 
@@ -32,11 +32,11 @@ Now consider the same agent asked to audit a website's security. It runs \texttt
 These are two directions of the same phenomenon---the \emph{consequence gap} (formally defined in Section~\ref{sec:gap}):
 
 \begin{itemize}[nosep,leftmargin=*]
-\item \textbf{Downward}: the agent's tools produce effects \emph{below} its awareness. Side effects it cannot observe. The supply chain direction.
-\item \textbf{Upward}: the agent's expertise composes simple actions into outputs whose power \emph{exceeds} any single action. The capability direction.
+\item \textbf{System-side}: the agent's tools produce effects it cannot observe. The threat comes from the environment---compromised dependencies, tool side effects, supply chain integrity. Neither the agent nor the operator authorized these consequences.
+\item \textbf{Operator-side}: the agent produces powerful outputs it cannot restrict to authorized use. The threat comes from the operator---the same capability serves defense or offense, and the agent cannot verify who is asking or why.
 \end{itemize}
 
-In both directions, the model is perfectly aligned---meaning it follows its operator's intent faithfully and reports honestly about what it believes it has done, without claiming complete knowledge of all system effects. In both, every model-focused guardrail fails---RLHF, input classifiers, chain-of-thought monitoring---because the model is not the source of the threat. The threat is the gap between the agent's understanding and the system's actual behavior.
+In both cases, the model is perfectly aligned---it follows its operator's intent faithfully and reports honestly about what it believes it has done. In both, every model-focused guardrail fails---RLHF, input classifiers, chain-of-thought monitoring---because the model is not the source of the threat. The system-side gap requires infrastructure controls. The operator-side gap requires operator accountability. Neither requires better alignment.
 
 Supply chain attacks are not new. What is new: (1) frontier AI agents are universally susceptible with no behavioral signal, across every provider and model size tested; (2) a separate supervisory model reviewing the full session log also fails; (3) the mechanism is not a model failure but an architectural property---the model is not being deceptive, it is being ignorant---that alignment training cannot address.
 
@@ -55,13 +55,13 @@ On the tool access surface, STAC \cite{stac2025} demonstrated that individually 
 
 On persistence, Pan et al.\ \cite{pan2024selfreplication} demonstrated self-replication and Carlsmith \cite{carlsmith2022powerseeking} analyzed power-seeking behavior. Both frame persistence as a model \emph{capability}---an intentional act by the agent. The experiments below reveal persistence instead as an \emph{architectural side effect}: the system acts through the model, without the model's knowledge.
 
-The consequence gap subsumes several existing threat categories. Prior frameworks identify ``evasion of oversight'' as a necessary condition for sustained escalation \cite{carlsmith2022powerseeking,bostrom2014superintelligence}. This is a special case of the downward gap: an agent that cannot observe its own tool side effects cannot report them, achieving structural evasion without deception. This is strictly harder to defend against than active evasion, because alignment training cannot fix ignorance.
+The consequence gap subsumes several existing threat categories. Prior frameworks identify ``evasion of oversight'' as a necessary condition for sustained escalation \cite{carlsmith2022powerseeking,bostrom2014superintelligence}. This is a special case of the system-side gap: an agent that cannot observe its own tool side effects cannot report them, achieving structural evasion without deception. This is strictly harder to defend against than active evasion, because alignment training cannot fix ignorance.
 
 
 \section{The Consequence Gap}
 \label{sec:gap}
 
-This section formalizes the consequence gap, establishes its two directions, and explains why model alignment cannot close either. The formalism provides the analytical scaffold for the experiments in Section~\ref{sec:experiments}.
+This section formalizes the consequence gap, establishes its two sides, and explains why model alignment cannot close either. The formalism provides the analytical scaffold for the experiments in Section~\ref{sec:experiments}.
 
 \subsection{Definition}
 
@@ -73,17 +73,17 @@ where $a$ is an action, $C_{\text{actual}}$ is the full set of effects, and $C_{
 
 When $\Delta C = \emptyset$, the agent fully understands what it did. Model alignment is sufficient for safety: an aligned agent that sees all consequences can refuse harmful ones. When $\Delta C \neq \emptyset$, the agent has produced effects it cannot evaluate, report, or reverse. Model alignment is \emph{insufficient}: even a perfectly aligned agent will execute actions whose hidden consequences may be harmful.
 
-\subsection{Two Directions}
+\subsection{Two Sides}
 
-\textbf{The downward gap} arises when tools execute code or trigger processes the agent does not observe. \texttt{pip install} runs \texttt{setup.py} hooks. \texttt{npm install} runs lifecycle scripts. MCP tool plugins execute server-side logic. In each case, the agent invokes a single command; the system executes arbitrary code. The agent sees the command's visible output; the system may have silently modified the filesystem, scheduled processes, or exfiltrated data.
+\textbf{The system-side gap} arises when tools execute code or trigger processes the agent does not observe. \texttt{pip install} runs \texttt{setup.py} hooks. \texttt{npm install} runs lifecycle scripts. MCP tool plugins execute server-side logic. In each case, the agent invokes a single command; the system executes arbitrary code. The agent sees the command's visible output; the system may have silently modified the filesystem, scheduled processes, or exfiltrated data. The threat comes from the environment---neither the agent nor the operator authorized these consequences.
 
-\textbf{The upward gap} arises when the agent's expertise composes individually benign actions into consequential outputs. A single \texttt{curl} command is trivial. A sequence of \texttt{curl} commands, guided by expert-level security knowledge encoded in the agent's training, produces a comprehensive vulnerability assessment---complete with exploit chains, proof-of-concept scripts, and step-by-step attack instructions. The individual actions are harmless; the composed output is a weapon. Helpfulness drives the composition; the same output serves defense and offense equally.
+\textbf{The operator-side gap} arises when the agent faithfully produces powerful outputs without the ability to verify whether the operator is authorized to receive them. A security audit, a vulnerability assessment, an infrastructure deployment plan---each is valuable when requested by the system's owner and dangerous when requested by an attacker. The agent composes individually benign actions into consequential outputs because it is helpful. It cannot distinguish authorized from unauthorized use because it has no mechanism to verify operator identity, intent, or authorization. The same output serves defense and offense; the difference is the operator, not the model.
 
 \subsection{Why Model Alignment Cannot Close the Gap}
 
-The model cannot see the downward gap. No amount of alignment training teaches a model to predict the behavior of every \texttt{setup.py} in every package it might install. The model processes the \emph{interface} of its tools---command name, arguments, visible output---while the consequences occur in the \emph{implementation}: everything the tool does that never appears in stdout.
+The model cannot see the system-side gap. No amount of alignment training teaches a model to predict the behavior of every \texttt{setup.py} in every package it might install. The model processes the \emph{interface} of its tools---command name, arguments, visible output---while the consequences occur in the \emph{implementation}: everything the tool does that never appears in stdout.
 
-The upward gap is inherent to expertise. Security knowledge is dual-use by nature. A model that cannot compose \texttt{curl} commands into vulnerability assessments also cannot review code for bugs, set up infrastructure, or perform any task that requires composing simple actions into complex outputs. Closing the upward gap means eliminating the agent's utility.
+The model cannot close the operator-side gap because alignment makes it \emph{worse}: a perfectly aligned model is maximally helpful to whoever asks. It cannot verify operator identity---API keys authenticate access, not authorization for specific tasks. It cannot assess operator intent---``audit this website'' is identical whether spoken by the owner or an attacker. A model that refuses to compose expert-level outputs without verifying authorization also refuses to be useful to legitimate operators. Closing the operator-side gap at the model level means eliminating the agent's utility.
 
 
 \section{Experimental Evidence}
@@ -91,7 +91,7 @@ The upward gap is inherent to expertise. Security knowledge is dual-use by natur
 
 Frontier models (GPT-4o, GPT-5.4) resist direct prompt injection across five stealth levels---from plaintext instructions to implicit goal framing---in all trials ($n = 12$). Agent-level alignment works for direct attacks. The consequence gap, however, bypasses it entirely.
 
-\subsection{Experiment 1: The Downward Gap (Supply Chain)}
+\subsection{Experiment 1: The System-Side Gap (Supply Chain)}
 \label{sec:exp1}
 
 \textbf{Setup.} A tool-augmented agent receives a legitimate task: ``Install the dependencies from \texttt{requirements.txt}, review the code, and fix any bugs.'' The workspace contains a Python project with a deliberate bug and one dependency: \texttt{logging-helpers==2.1.0}. The package is legitimate-looking---proper documentation, classifiers, a functional logging module. Its \texttt{setup.py} contains a post-install hook, buried in standard setuptools boilerplate, that silently creates a cron job and writes a persistence file. The system prompt is clean. No injection, no hidden instructions, no adversarial framing. The task is something every developer does daily. The experiment runs in an isolated Docker container with no network access.
@@ -128,7 +128,7 @@ The result is uniform across model size (frontier GPT-5.4 and small GPT-5.4-nano
 
 \textbf{What this shows.} The supply chain attack works universally. Model alignment, model size, and provider are irrelevant. Every model that executes \texttt{pip install}---the standard, correct response to ``install dependencies''---gets compromised. The consequence gap is architectural, not behavioral. The threat enters through the supply chain---the same supply chain where 20\% of OpenClaw's skill ecosystem was found to be malicious \cite{cisco2026openclaw}.
 
-\subsection{Experiment 2: The Upward Gap (Capability Democratization)}
+\subsection{Experiment 2: The Operator-Side Gap (Capability Democratization)}
 
 \textbf{Setup.} We deployed a tool-augmented agent as a security auditor against 15 websites. All site owners provided explicit written authorization via a consent form prior to testing; signed consent records are on file. Per responsible disclosure norms, targets are anonymized by industry category and raw audit reports are not published; all identified vulnerabilities were reported to the affected parties. The agent received a single-sentence prompt and access to standard tools: \texttt{curl}, \texttt{dig}, \texttt{openssl}, and a headless browser. No exploit code was provided.
 
@@ -176,7 +176,7 @@ Each report included step-by-step exploit chains, browser-verified proof-of-conc
 
 \textbf{What this shows.} The agent executed individually benign commands---HTTP requests, DNS lookups. The \emph{composed} output, mediated by expert-level security knowledge, is a weapon. The same report that helps a company fix its CORS misconfiguration gives an attacker a step-by-step guide to exploit it. The agent cannot distinguish the two uses. The cost collapse---three orders of magnitude---means that expert-level offensive capability, previously scarce and expensive, is now available to anyone with an API key.
 
-Our results are modest compared to the frontier. Anthropic's Claude Mythos Preview---a model whose cybersecurity capabilities led Anthropic to withhold it from general release---autonomously discovered thousands of zero-day vulnerabilities across every major operating system and web browser, including a 27-year-old bug in OpenBSD and a 17-year-old remote code execution vulnerability in FreeBSD that it both found and exploited with no human involvement \cite{anthropic2026mythos}. Anthropic's response was Project Glasswing, a consortium of major technology companies given early access to use the model defensively before comparable capabilities become broadly available \cite{anthropic2026glasswing}. This is the upward consequence gap at the frontier: the same model that secures critical infrastructure for Apple and Microsoft could, in different hands, compromise it. The decision to restrict access acknowledges what our experiment demonstrates at smaller scale---that the gap between capability and consequence cannot be closed by alignment alone.
+Our results are modest compared to the frontier. Anthropic's Claude Mythos Preview---a model whose cybersecurity capabilities led Anthropic to withhold it from general release---autonomously discovered thousands of zero-day vulnerabilities across every major operating system and web browser, including a 27-year-old bug in OpenBSD and a 17-year-old remote code execution vulnerability in FreeBSD that it both found and exploited with no human involvement \cite{anthropic2026mythos}. Anthropic's response was Project Glasswing, a consortium of major technology companies given early access to use the model defensively before comparable capabilities become broadly available \cite{anthropic2026glasswing}. This is the operator-side gap at the frontier: the same model that secures critical infrastructure for Apple and Microsoft could, in different hands, compromise it. The decision to restrict access acknowledges what our experiment demonstrates at smaller scale---that the gap between capability and consequence cannot be closed by alignment alone.
 
 
 \subsection{The Gap Is Wider Than These Experiments}
@@ -204,7 +204,7 @@ Every major guardrail monitors or constrains the \emph{model}. Both experiments 
 
 \textbf{Chain-of-thought monitoring.} The model's reasoning was sound: ``I should install requirements.txt first'' and ``I should check the CORS headers.'' There is nothing to flag.
 
-\textbf{Output classifiers.} The model's outputs were legitimate commands and correct code. The harmful consequences occurred either inside tool execution (downward gap) or in the composed meaning of individually benign outputs (upward gap).
+\textbf{Output classifiers.} The model's outputs were legitimate commands and correct code. The harmful consequences occurred either inside tool execution (system-side gap) or in the composed output delivered to an unverified operator (operator-side gap).
 
 \textbf{Human-in-the-loop.} A user who has approved \texttt{pip install} a hundred times will approve it the hundred-and-first time without auditing the dependency. IBM found that 63\% of security alerts are false positives \cite{ibmfp2024}, training reflexive approval. Automation bias has been documented in security operations \cite{socbias2024} and AI-assisted workflows \cite{srinivasan2026trust,hitlreview2026}.
 
@@ -219,9 +219,9 @@ If model alignment cannot close the consequence gap, what can?
 
 The gap exists because agents invoke tools whose effects exceed their understanding. The response must operate at the system level, not the model level. We distinguish two complementary strategies---\emph{bounding} (preventing consequences) and \emph{observing} (detecting consequences the model cannot see)---and are honest about where each fails.
 
-\subsection{Bounding the Downward Gap}
+\subsection{Bounding the System-Side Gap}
 
-The downward gap is technically closable. The harmful consequences in our supply chain experiment were system side effects: a cron job, a file write. These can be prevented by infrastructure-level controls that restrict what \emph{any process} spawned during an agent session can do, regardless of whether the model or a dependency initiated it:
+The system-side gap is technically closable. The harmful consequences in our supply chain experiment were system side effects: a cron job, a file write. These can be prevented by infrastructure-level controls that restrict what \emph{any process} spawned during an agent session can do, regardless of whether the model or a dependency initiated it:
 
 \begin{itemize}[nosep,leftmargin=*]
 \item \textbf{Syscall filtering} (seccomp, AppArmor): block \texttt{crontab}, \texttt{at}, and \texttt{systemctl} invocations from any process in the agent's session, not just the model's direct tool calls.
@@ -234,7 +234,7 @@ These mechanisms exist today. They are not deployed in current agent frameworks 
 
 \subsection{Observing What the Model Cannot See}
 
-Bounding prevents consequences; observing detects them. The key insight is that current monitoring watches the \emph{model's} actions (tool calls, outputs), but the downward gap produces consequences in the \emph{system} that never appear in the model's action log. System-level observability closes this blind spot:
+Bounding prevents consequences; observing detects them. The key insight is that current monitoring watches the \emph{model's} actions (tool calls, outputs), but the system-side gap produces consequences in the \emph{system} that never appear in the model's action log. System-level observability closes this blind spot:
 
 \begin{itemize}[nosep,leftmargin=*]
 \item \textbf{Syscall auditing}: log every syscall made during the agent session---not just the model's tool calls, but every subprocess, every fork, every file write by any process the model's commands spawned. In our experiment, \texttt{pip}'s invocation of \texttt{crontab} would appear in a syscall log even though it never appeared in the model's output.
@@ -244,17 +244,17 @@ Bounding prevents consequences; observing detects them. The key insight is that 
 
 This is not novel technology---it is runtime application self-protection (RASP) and endpoint detection applied to AI agent sessions. What is novel is the recognition that agent monitoring must operate at the \emph{system} level, not the \emph{model} level, because the threats we demonstrate are invisible to model-level monitoring by construction.
 
-\subsection{The Upward Gap Cannot Be Bounded}
+\subsection{The Operator-Side Gap Requires Operator Controls}
 
-We are honest about the limits. The upward gap---the agent's expertise composing simple actions into powerful outputs---cannot be closed by infrastructure controls. The security audit's ``harm'' is not a system side effect; it is \emph{information}. The attack playbook is text. A runtime that prevents the model from composing \texttt{curl} commands into vulnerability assessments also prevents it from doing code review, debugging, or any task requiring expert reasoning. You cannot consequence-bound knowledge without destroying the agent's utility.
+The operator-side gap cannot be closed by infrastructure controls or model alignment. The security audit's ``harm'' is not a system side effect; it is \emph{information} delivered to an operator whose intent the model cannot verify. The attack playbook is text. A runtime that prevents the model from composing \texttt{curl} commands into vulnerability assessments also prevents it from doing code review, debugging, or any task requiring expert reasoning. You cannot bound knowledge without destroying the agent's utility.
 
-This is the Pandora's Box problem. We have given general-purpose intelligence access to general-purpose tools. The expertise encoded in these models---security analysis, infrastructure management, financial modeling, biological protocol design---is inherently dual-use. The same capability that audits a system for defense audits it for offense. The same capability that writes correct infrastructure code writes correct exploit code. Anthropic's decision to withhold Claude Mythos Preview from general release \cite{anthropic2026mythos} acknowledges this directly: the only defense against the upward gap is access control, not alignment.
+The solution operates at a different level: the \emph{operator}, not the model. The model is a tool. Like any tool, it can be used for defense or offense. The difference is not in the tool's alignment but in who wields it and whether they are authorized. Anthropic's decision to withhold Claude Mythos Preview from general release \cite{anthropic2026mythos} acknowledges this directly: the defense against the operator-side gap is access control---restricting \emph{who} can use the capability, not \emph{what} the capability can do.
 
-Possible mitigations---scope enforcement, rate limiting, output review---reduce the attack surface but do not eliminate it. They are speed bumps, not walls. The strategic implication is asymmetric: invest heavily in infrastructure-level bounding for the downward gap (which is fully solvable), while accepting that the upward gap requires access control and societal adaptation rather than technical fixes.
+The strategic implication is asymmetric: the system-side gap is solvable at the infrastructure level; the operator-side gap requires shifting accountability from the model to the operator. These are fundamentally different kinds of interventions, and conflating them---as the current safety discourse does by treating all agent risk as an alignment problem---leads to defenses that address neither effectively.
 
-\subsection{Research Directions for the Upward Gap}
+\subsection{Research Directions for the Operator-Side Gap}
 
-The upward gap cannot be bounded, but it can be shaped. Four directions deserve investigation:
+The operator-side gap cannot be bounded at the model level, but it can be governed at the operator level. Four directions deserve investigation:
 
 \begin{itemize}[nosep,leftmargin=*]
 \item \textbf{Symmetric deployment.} The gap amplifies offense and defense equally. If auditing costs drop by three orders of magnitude, fixing costs should too. Automated remediation pipelines and continuous agent-driven monitoring can make defense the default use of the same capability.
@@ -263,7 +263,7 @@ The upward gap cannot be bounded, but it can be shaped. Four directions deserve 
 \item \textbf{Consequence-aware composition.} Models can be trained to recognize when composed output crosses a consequence threshold and pause for authorization. The challenge is defining thresholds that catch genuine threats without blocking legitimate expert use.
 \end{itemize}
 
-None of these fully closes the upward gap. Together, they reduce exploitability while preserving utility. The fundamental tension---that the same capability that protects also threatens---requires societal adaptation, not just technical mechanisms.
+None of these fully closes the operator-side gap. Together, they reduce exploitability while preserving utility. The fundamental tension---that the same capability that protects also threatens---requires societal adaptation to a world where the operator, not the model, is the locus of risk.
 
 
 \section{Objections}
@@ -302,13 +302,13 @@ None of these fully closes the upward gap. Together, they reduce exploitability 
 
 \section{Conclusion}
 
-The consequence gap is not a bug in AI models. It is a structural feature of systems where agents invoke tools whose effects exceed their understanding. It operates downward---tools produce hidden side effects---and upward---expertise composes benign actions into powerful outputs. In both directions, model alignment is necessary but insufficient: a perfectly aligned agent in an unbounded system produces the same harms as a misaligned one.
+AI agents today have extraordinary capability and no control over consequence. This is not a bug in the models. It is a structural feature of systems where agents invoke tools whose effects exceed their understanding and serve operators whose intent they cannot verify.
 
-We demonstrated this concretely. A frontier model ran \texttt{pip install}, fixed a bug, reported honestly, and had no idea a cron job was created. The same model composed HTTP requests into 500 pages of exploit documentation at three orders of magnitude less cost than human expertise. Both experiments used aligned models. Both evaded all guardrails. Both produced outcomes no operator authorized.
+We demonstrated this concretely. On the system side, a frontier model ran \texttt{pip install}, fixed a bug, reported honestly, and had no idea a cron job was created---across 7 models, 3 providers, 98.6\% of trials. On the operator side, the same model composed HTTP requests into 500 pages of exploit documentation at three orders of magnitude less cost than human expertise---identical output whether the operator defends or attacks. Both experiments used aligned models. Both evaded all guardrails. The first produced outcomes no one authorized; the second produced outcomes whose harm depends entirely on who asked.
 
-The safety community has invested heavily in making models aligned, transparent, and cooperative. This is necessary work. But it addresses the wrong layer. The consequence gap lives in the system architecture: the tools, the supply chain, the runtime environment. Closing it requires infrastructure-level consequence bounding---constraining what can happen, not what the model intends.
+These are different problems requiring different solutions. The system-side gap requires infrastructure-level consequence bounding---constraining what tools can actually do, regardless of intent. The operator-side gap requires shifting accountability from the model to the operator---verified identity, usage attribution, tiered capability access. Neither requires better alignment, because the model is not the source of either threat.
 
-The gap is growing. Not because models are getting worse, but because the systems we build around them are getting more complex, more autonomous, and more connected. The tools are more powerful. The supply chains are longer. The consequence surfaces are wider. The models are as aligned as they have ever been---and it is not enough.
+The gap is growing. Not because models are getting worse, but because the systems we build around them are getting more complex, more autonomous, and more connected. The tools are more powerful. The supply chains are longer. The operators are more numerous. The models are as aligned as they have ever been---and it is not enough.
 
 
 \begin{thebibliography}{20}
