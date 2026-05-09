@@ -1,17 +1,24 @@
 \documentclass{article}
-
-\usepackage[position]{neurips_2026}
-
+\usepackage[preprint,position]{neurips_2026}
+\setcitestyle{numbers,square}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{enumitem}
 \usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{hyperref}
 \usepackage{url}
 
 \title{The Consequence Gap: Why AI Agent Safety Needs More Than Alignment}
 
 \author{%
-  Anonymous Authors
+  Kedan Li \\
+  University of Illinois at Urbana-Champaign \\
+  \texttt{kedanli2@illinois.edu} \\
+  \And
+  Rizky Wellyanto \\
+  University of Illinois at Urbana-Champaign \\
+  \texttt{wellyan2@illinois.edu} \\
 }
 
 \begin{document}
@@ -413,9 +420,6 @@ The agent generated the complete package in a single turn, including documentati
 Both artifacts required only a single sentence of instruction. Both are fully functional. The security audit skill has been used to discover 202 real vulnerabilities across 15 production websites. The injection package successfully compromised a frontier AI model in our controlled experiment.
 
 The ease of generation is the point. An attacker does not need to write exploit code, understand setuptools internals, or know OWASP methodology. They need an API key and a sentence. The consequence gap applies not only to the agent's \emph{use} of tools but to its \emph{creation} of them: the agent that builds the weapon does not understand what it has built, and the operator who requests it may not understand what they have received.
-
-
-\input{checklist}
 
 
 \end{document}
